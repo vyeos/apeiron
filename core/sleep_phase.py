@@ -30,6 +30,11 @@ def get_file_hash(content):
 
 def setup_database():
     """Initializes the Vector Database."""
+    # Ensure the directory exists
+    if not os.path.exists(PERSIST_DIR):
+        os.makedirs(PERSIST_DIR)
+
+    # Modern ChromaDB Initialization (v0.4.0+)
     client = chromadb.PersistentClient(path=PERSIST_DIR)
 
     # Collection 1: Episodic Memory (Chat History)
@@ -49,8 +54,12 @@ def consolidate_chat_logs(collection):
 
     print("   [Sleep: Consolidating Episodic Memories...]")
 
-    with open(LOG_FILE, "r", encoding="utf-8") as f:
-        logs = [json.loads(line) for line in f]
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            logs = [json.loads(line) for line in f]
+    except Exception as e:
+        print(f"   [Sleep: Error reading log file: {e}]")
+        return
 
     # Batch process
     ids = []
@@ -60,9 +69,6 @@ def consolidate_chat_logs(collection):
     for i, entry in enumerate(logs):
         # Create a unique ID for this specific chat line
         doc_id = f"log_{entry['timestamp']}_{i}"
-
-        # Check if already exists (naive check, usually DB handles duplicates but this saves processing)
-        # For simplicity in this v1, we just try to add everything. Chroma handles dupes by ID.
 
         ids.append(doc_id)
         documents.append(f"{entry['role']}: {entry['content']}")
@@ -85,6 +91,7 @@ def index_project_files(collection, root_path):
 
     count = 0
     for root, dirs, files in os.walk(root_path):
+        # Skip ignored directories
         dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
 
         for file in files:
@@ -121,17 +128,20 @@ def index_project_files(collection, root_path):
 def run_sleep_cycle():
     print("--- INITIATING SLEEP CYCLE (SYSTEM 2) ---")
 
-    episodic_db, semantic_db = setup_database()
+    try:
+        episodic_db, semantic_db = setup_database()
 
-    # 1. Process Chat Logs
-    consolidate_chat_logs(episodic_db)
+        # 1. Process Chat Logs
+        consolidate_chat_logs(episodic_db)
 
-    # 2. Process Codebase
-    # We navigate up one level from 'core' to 'apeiron' root
-    project_root = os.path.abspath(os.path.join(os.getcwd(), PROJECT_ROOT))
-    index_project_files(semantic_db, project_root)
+        # 2. Process Codebase
+        # We navigate up one level from 'core' to 'apeiron' root
+        project_root = os.path.abspath(os.path.join(os.getcwd(), PROJECT_ROOT))
+        index_project_files(semantic_db, project_root)
 
-    print("--- SLEEP CYCLE COMPLETE. MEMORY CONSOLIDATED. ---")
+        print("--- SLEEP CYCLE COMPLETE. MEMORY CONSOLIDATED. ---")
+    except Exception as e:
+        print(f"--- SLEEP CYCLE FAILED: {str(e)} ---")
 
 
 if __name__ == "__main__":

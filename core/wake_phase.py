@@ -54,7 +54,7 @@ Goal: Synthesize these inputs to provide accurate, context-aware answers.
 """
 
 
-# --- MODULE: LIVE WATCHER (From v3) ---
+# --- MODULE: LIVE WATCHER ---
 class ProjectWatcher(FileSystemEventHandler):
     def is_valid_file(self, file_path):
         if any(ignore in file_path.split(os.sep) for ignore in IGNORE_DIRS):
@@ -95,16 +95,17 @@ def start_watching(path):
     return observer
 
 
-# --- MODULE: HIPPOCAMPUS (New for v4) ---
+# --- MODULE: HIPPOCAMPUS ---
 def query_vector_db(query_text, n_results=3):
     """Searches the ChromaDB created by the Sleep Cycle."""
     try:
         if not os.path.exists(MEMORY_DB_DIR):
             return ["(Memory Offline: No database found. Run sleep_phase.py first.)"]
 
+        # IMPORTANT: Requires chromadb >= 0.4.0
+        # If this fails, run: pip install --upgrade chromadb
         client = chromadb.PersistentClient(path=MEMORY_DB_DIR)
 
-        # We query both collections: Chat History and Codebase
         results = []
 
         # 1. Search Semantic Knowledge (Code)
@@ -173,7 +174,6 @@ def wake_system():
                 print(f"   [Hippocampus: Searching memories for '{query}'...]")
                 memories = query_vector_db(query)
 
-                # Store in global state to inject into next prompt
                 LONG_TERM_MEMORY.clear()
                 LONG_TERM_MEMORY.extend(memories)
 
@@ -184,9 +184,8 @@ def wake_system():
 
             # 3. COMMAND: IMAGE (Vision)
             if user_input.startswith("img:"):
-                # (Simplified logic for brevity - assumes you have the v2 logic or use simple prompt)
-                print("   [Vision: Analyzing...]")
-                # ... Insert v2 vision logic here if needed, or simple bypass
+                # Placeholder for vision logic
+                print("   [Vision: Vision module active (Logic in v2/v3)...]")
                 continue
 
             # --- BUILD DYNAMIC CONTEXT BLOCK ---
@@ -248,7 +247,6 @@ def wake_system():
                 }
                 f.write(json.dumps(entry) + "\n")
 
-            # Clear recalled memory after use (so it doesn't pollute next totally different question)
             LONG_TERM_MEMORY.clear()
 
     except KeyboardInterrupt:
