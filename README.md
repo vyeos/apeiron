@@ -48,64 +48,70 @@ The system is bifurcated into two distinct phases, mimicking the biological cogn
 ## 3. Installation & Setup
 
 ### Prerequisites
-* **Hardware:** Mac with Apple Silicon (M1/M2/M3).
-* **Software:** Python 3.10+, Homebrew.
+* **Hardware:** Mac.
+* **System Python:** Python 3.11
+* **Package Manager:** Poetry.
 
-### Step 1: Install the Neural Engine
+### Step 1: Install System Dependencies
 ```bash
+brew install python@3.11
+brew install poetry
 brew install ollama
-ollama serve  # (Run in a separate background terminal)
+ollama serve &  # Run in background
 ```
 
-### Then, pull the required models:
+### Step 2: pull the required models:
 ```bash
 ollama run llama3
 ollama run llava
 ```
 
-### Step 2: Setup the Python Environment
+### Step 3: Setup the Python Environment
 ```bash
-mkdir apeiron
 cd apeiron
-python3 -m venv venv
-source venv/bin/activate
+poetry env use python3.11
+poetry install
 ```
-### Step 3: Install Dependencies
-```bash
-pip install ollama chromadb watchdog
-pip freeze > requirements.txt
-```
+
 ## 4. Operational Workflow (The Daily Loop)
 
-Morning: Wake the System
+You have two ways to run the system: Automated Loop or Manual Control.
 
-Open your terminal and activate the environment:
-```bash
-source venv/bin/activate
-```
+### Option A: The Automated Loop (Recommended)
+We have a shell script that handles the Wake/Sleep cycle automatically.
 
-Launch the World Runner agent:
+1. Run the script:
+    ```bash
+
+    ./run.sh
+    ```
+2. Interact: Work, code, and chat.
+
+3. Finish: Type exit. The script will automatically trigger the Sleep Phase and consolidate your memories.
+
+### Option B: Manual Control
+
+1. Morning: Wake the System
+
 ```bash
-python3 core/wake_phase_v4.py
+poetry run python core/wake_phase.py
 ```
 
 Connect Eyes: Type watch: and drag your working folder into the terminal.
 
-During the Day: Collaboration
-- Ask Questions: "Explain the authentication logic in auth.py."
-- Edit Code: The system sees every save instantly.
-- Recall History: "recall: What did we decide about the database schema?"
+2. During the Day: Collaboration
 
-Evening: Sleep & Consolidate
+- Ask: "Explain the authentication logic in auth.py."
+- Edit: The system sees every save instantly.
+- Recall: "recall: What did we decide about the database schema?"
 
-Type sleep to shut down the agent gracefully. Then, run the consolidation script to store memories:
+3. Evening: Sleep & Consolidate
+
+- Type sleep to shut down the agent gracefully.
+- Run the consolidation script:
+
 ```bash
-python3 core/sleep_phase.py
-```
-
-Output: 
-```text
-[Sleep: Stored X chat interactions. Indexed Y source code files.]
+poetry run python core/sleep_phase.py
 ```
 
 ## 5. Command Reference
@@ -122,21 +128,45 @@ Interactive Commands (Inside Wake Phase)
 
 ### System Commands (Terminal)
 
+- poetry run python [script] - Runs a specific phase inside the environment.
+- poetry shell - Spawns a shell inside the virtual environment (persistently).
+- poetry add [package] - Installs a new library (replacing pip install).
 - ollama serve - Starts the local LLM server (Background).
-- source venv/bin/activate - Activates the Python sandbox.
-- python3 core/wake_phase_v4.py - Starts the Interactive Agent.
-- python3 core/sleep_phase.py - Runs Memory Consolidation.
 
-## 6. Project Structure
+## 6. Project Configuration (pyproject.toml)
+
+Your configuration file currently looks like this:
+
+```toml
+[project]
+name = "apeiron"
+version = "0.1.0"
+description = "McNS-OS Local Implementation"
+authors = [{name = "The World Runner"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "ollama",
+    "chromadb",
+    "watchdog"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+```
+
+## 7. Project Structure
 
 ```text
 apeiron/
-├── venv/                   # Python Virtual Environment
-├── memory_db/              # ChromaDB (Long-Term Memory Storage)
-├── session_logs.jsonl      # Raw Daily Logs (Episodic Memory)
-├── requirements.txt        # Package List
+├── pyproject.toml       # Project Configuration & Dependencies
+├── poetry.lock          # Dependency Lockfile
+├── run_apeiron.sh       # Automation Script (Loop)
+├── memory_db/           # ChromaDB (Long-Term Memory Storage)
+├── session_logs.jsonl   # Raw Daily Logs (Episodic Memory)
 ├── core/
-│   ├── wake_phase_v4.py    # SYSTEM 1: Interaction & Reflexes
-│   └── sleep_phase.py      # SYSTEM 2: Memory & Indexing
-└── README.md               # This Manual
+│   ├── wake_phase_v4.py # SYSTEM 1: Interaction & Reflexes
+│   └── sleep_phase.py   # SYSTEM 2: Memory & Indexing
+└── README.md            # This Manual
 ```
